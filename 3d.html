@@ -2,122 +2,300 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>3D 무한성 애니메이션</title>
+<title>섬세한 우주 무한성 + 초신성 + 루프 효과</title>
 <style>
-  body { margin:0; overflow:hidden; }
+  body { margin:0; overflow:hidden; background:black; }
   canvas { display:block; }
 </style>
 </head>
 <body>
-
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
 // --- 씬, 카메라, 렌더러 ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
-camera.position.set(0, 20, 50);
-
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+camera.position.set(0,0,5);
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- 빛 설정 ---
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+// --- 빛 ---
+const ambientLight = new THREE.AmbientLight(0xffffff,0.5);
 scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffffff,1);
+pointLight.position.set(0,50,50);
+scene.add(pointLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(50, 50, 50);
-scene.add(directionalLight);
+// --- 색상 배열 ---
+const colors = [0xff0000,0x00ff00,0x0000ff,0xffff00,0xff00ff,0x00ffff,0xffffff];
 
-// --- 오브젝트 생성 ---
+// --- 일반 오브젝트 ---
 const objects = [];
 const geomTypes = [
-    new THREE.BoxGeometry(2,2,2),
-    new THREE.SphereGeometry(1.2,16,16),
-    new THREE.CylinderGeometry(1,1,2,16)
+  new THREE.BoxGeometry(1.5,1.5,1.5),
+  new THREE.SphereGeometry(0.8,12,12),
+  new THREE.CylinderGeometry(0.5,0.5,1.5,12)
 ];
-const colors = [0xff0000,0xff9900,0xffff00,0x00ff00,0x00ffff,0x0000ff,0xff00ff];
-
-for(let i=0;i<150;i++){
-    const geom = geomTypes[Math.floor(Math.random()*geomTypes.length)];
-    const mat = new THREE.MeshStandardMaterial({
-        color: colors[Math.floor(Math.random()*colors.length)],
-        emissive: 0xffffff,
-        emissiveIntensity: Math.random()*0.5+0.5,
-        roughness: 0.4,
-        metalness: 0.7
-    });
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.set(
-        (Math.random()-0.5)*300,
-        (Math.random()-0.5)*300,
-        (Math.random()-0.5)*300
-    );
-    mesh.userData = {
-        speed: Math.random()*0.03+0.005,
-        scaleDir: Math.random()>0.5?1:-1
-    };
-    scene.add(mesh);
-    objects.push(mesh);
+for(let i=0;i<120;i++){
+  const geom = geomTypes[Math.floor(Math.random()*geomTypes.length)];
+  const mat = new THREE.MeshStandardMaterial({
+    color: colors[Math.floor(Math.random()*colors.length)],
+    emissive: 0xffffff,
+    emissiveIntensity: Math.random()*0.6+0.4,
+    roughness:0.4,
+    metalness:0.7
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(
+    (Math.random()-0.5)*200,
+    (Math.random()-0.5)*200,
+    -Math.random()*500
+  );
+  mesh.userData = {
+    speed: Math.random()*1.2+0.2,
+    rotationSpeed: Math.random()*0.03+0.01,
+    phase: Math.random()*Math.PI*2 // 속도 변화 위상
+  };
+  scene.add(mesh);
+  objects.push(mesh);
 }
 
-// --- 배경 별점 ---
+// --- 별점 ---
 const starGeo = new THREE.BufferGeometry();
-const starCount = 500;
-const starPos = [];
+const starCount = 600;
+const starPositions = [];
 for(let i=0;i<starCount;i++){
-    starPos.push((Math.random()-0.5)*400);
-    starPos.push((Math.random()-0.5)*400);
-    starPos.push((Math.random()-0.5)*400);
+  starPositions.push((Math.random()-0.5)*400);
+  starPositions.push((Math.random()-0.5)*400);
+  starPositions.push(-Math.random()*1000);
 }
-starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos,3));
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions,3));
 const starMat = new THREE.PointsMaterial({color:0xffffff, size:0.5});
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
-// --- 카메라 움직임 변수 ---
-let camAngle = 0;
+// --- 큰 별 + 위성 ---
+const bigObjects = [];
+for(let i=0;i<8;i++){
+  const geom = Math.random()>0.5 ? new THREE.SphereGeometry(5,32,32) : new THREE.BoxGeometry(6,6,6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: colors[Math.floor(Math.random()*colors.length)],
+    emissive: 0xffffff,
+    emissiveIntensity: 1,
+    roughness:0.3,
+    metalness:0.8
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(
+    (Math.random()-0.5)*150,
+    (Math.random()-0.5)*150,
+    -Math.random()*2000-200
+  );
+  mesh.userData = { speed: Math.random()*2+0.5, rotationSpeed: Math.random()*0.01+0.005, satellites: [], exploding:false };
 
-// --- 애니메이션 루프 ---
+  // --- 위성 생성 ---
+  const satCount = Math.floor(Math.random()*5)+1;
+  for(let s=0;s<satCount;s++){
+    const satGeom = new THREE.SphereGeometry(Math.random()*1+0.5,8,8);
+    const satMat = new THREE.MeshStandardMaterial({
+      color: colors[Math.floor(Math.random()*colors.length)],
+      emissive:0xffffff,
+      emissiveIntensity:0.5
+    });
+    const sat = new THREE.Mesh(satGeom, satMat);
+    const radius = Math.random()*10+5;
+    const angle = Math.random()*Math.PI*2;
+    sat.userData = { radius: radius, angle: angle, speed: Math.random()*0.03+0.01 };
+    mesh.add(sat);
+    mesh.userData.satellites.push(sat);
+  }
+
+  scene.add(mesh);
+  bigObjects.push(mesh);
+}
+
+// --- 토성 고리 ---
+const planets = [];
+for(let i=0;i<3;i++){
+  const planetGeo = new THREE.SphereGeometry(4,32,32);
+  const planetMat = new THREE.MeshStandardMaterial({color:0xffaa00, emissive:0xffffff, emissiveIntensity:0.5});
+  const planet = new THREE.Mesh(planetGeo, planetMat);
+
+  const ringGeo = new THREE.RingGeometry(5,7,32);
+  const ringMat = new THREE.MeshStandardMaterial({color:0xaaaaaa, side:THREE.DoubleSide, emissive:0xffffff, emissiveIntensity:0.3});
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI/2;
+  planet.add(ring);
+
+  planet.position.set((Math.random()-0.5)*200, (Math.random()-0.5)*200, -Math.random()*2000-300);
+  planet.userData = { speed: Math.random()*1+0.3, rotationSpeed:0.005 };
+  scene.add(planet);
+  planets.push(planet);
+}
+
+// --- 초신성 파티클 ---
+const particleCount = 300;
+const particleGeo = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount*3);
+const particleColors = new Float32Array(particleCount*3);
+for(let i=0;i<particleCount;i++){
+  particlePositions[i*3]=0; particlePositions[i*3+1]=0; particlePositions[i*3+2]=0;
+  particleColors[i*3]=1; particleColors[i*3+1]=1; particleColors[i*3+2]=0;
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions,3));
+particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors,3));
+const particleMat = new THREE.PointsMaterial({size:0.5, vertexColors:true});
+const particles = new THREE.Points(particleGeo, particleMat);
+particles.visible=false;
+scene.add(particles);
+
+// --- 은하수 집합 ---
+const galaxyGroups = [];
+for(let g=0;g<3;g++){
+  const group = new THREE.Group();
+  for(let i=0;i<50;i++){
+    const gStarGeo = new THREE.SphereGeometry(Math.random()*0.3+0.2,6,6);
+    const gStarMat = new THREE.MeshStandardMaterial({color: colors[Math.floor(Math.random()*colors.length)], emissive:0xffffff, emissiveIntensity:0.5});
+    const star = new THREE.Mesh(gStarGeo, gStarMat);
+    star.position.set(Math.random()*20-10, Math.random()*20-10, Math.random()*20-10);
+    group.add(star);
+  }
+  group.position.set((Math.random()-0.5)*200, (Math.random()-0.5)*200, -Math.random()*2500-500);
+  scene.add(group);
+  galaxyGroups.push(group);
+}
+
+// --- 카메라 변수 ---
+let camAngle=0;
+let flashAlpha=0;
+
+// --- 애니메이션 ---
 function animate(){
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    // 오브젝트 회전 + 스케일 + 튀는 느낌
-    objects.forEach(obj=>{
-        obj.rotation.x += obj.userData.speed;
-        obj.rotation.y += obj.userData.speed*1.5;
+  // 일반 오브젝트 이동 + 속도 2차함수처럼 변화
+  objects.forEach(obj=>{
+    obj.position.z += obj.userData.speed * (0.5 + 0.5*Math.sin(obj.userData.phase + performance.now()*0.001));
+    obj.rotation.x += obj.userData.rotationSpeed;
+    obj.rotation.y += obj.userData.rotationSpeed*1.2;
+    if(obj.position.z>10){ 
+      obj.position.z=-500-Math.random()*200;
+      obj.position.x=(Math.random()-0.5)*200; 
+      obj.position.y=(Math.random()-0.5)*200; 
+      obj.userData.phase = Math.random()*Math.PI*2;
+    }
+  });
 
-        obj.scale.x += 0.01*obj.userData.scaleDir;
-        obj.scale.y += 0.01*obj.userData.scaleDir;
-        obj.scale.z += 0.01*obj.userData.scaleDir;
-        if(obj.scale.x>2 || obj.scale.x<0.5) obj.userData.scaleDir *= -1;
+  // 큰 오브젝트 이동 + 위성 + 초신성
+  bigObjects.forEach(obj=>{
+    obj.position.z += obj.userData.speed;
+    obj.rotation.y += obj.userData.rotationSpeed;
 
-        // 랜덤 튀기기 효과
-        obj.position.y += Math.sin(Date.now()*0.001 + obj.position.x) * 0.05;
-        obj.position.x += Math.cos(Date.now()*0.001 + obj.position.z) * 0.05;
+    obj.userData.satellites.forEach(sat=>{
+      sat.userData.angle += sat.userData.speed;
+      sat.position.x = Math.cos(sat.userData.angle)*sat.userData.radius;
+      sat.position.z = Math.sin(sat.userData.angle)*sat.userData.radius;
     });
 
-    // 카메라 원형 이동 + 약간 높이 흔들림
-    camAngle += 0.002;
-    camera.position.x = Math.sin(camAngle)*200;
-    camera.position.z = Math.cos(camAngle)*200;
-    camera.position.y = 50 + Math.sin(camAngle*2)*20;
-    camera.lookAt(0,0,0);
+    // 랜덤 초신성 트리거
+    if(!obj.userData.exploding && Math.random()<0.001){
+      obj.userData.exploding=true;
+      flashAlpha=1; // 화면 하얘짐
+      triggerSupernova(obj.position.clone());
+    }
 
-    renderer.render(scene,camera);
+    if(obj.position.z>10){ 
+      obj.position.z=-2000-Math.random()*500;
+      obj.position.x=(Math.random()-0.5)*150; 
+      obj.position.y=(Math.random()-0.5)*150; 
+      obj.userData.exploding=false; 
+    }
+  });
+
+  // 토성 이동
+  planets.forEach(p=>{
+    p.position.z += p.userData.speed;
+    p.rotation.y += p.userData.rotationSpeed;
+    if(p.position.z>10){ 
+      p.position.z=-2000-Math.random()*500; 
+      p.position.x=(Math.random()-0.5)*200; 
+      p.position.y=(Math.random()-0.5)*200; 
+    }
+  });
+
+  // 은하수 이동
+  galaxyGroups.forEach(g=>{
+    g.position.z += 1.2;
+    if(g.position.z>10){
+      g.position.z=-2500-Math.random()*500;
+      g.position.x=(Math.random()-0.5)*200;
+      g.position.y=(Math.random()-0.5)*200;
+    }
+  });
+
+  // 별 이동
+  stars.geometry.attributes.position.array.forEach((v,i,arr)=>{
+    if(i%3===2){ arr[i]+=0.5; if(arr[i]>10) arr[i]=-1000+Math.random()*50; }
+  });
+  stars.geometry.attributes.position.needsUpdate=true;
+
+  // 카메라
+  camAngle+=0.0015;
+  camera.position.x=Math.sin(camAngle)*50;
+  camera.position.y=Math.sin(camAngle*1.2)*20;
+  camera.lookAt(0,0,-100);
+
+  // 화면 플래시 처리
+  if(flashAlpha>0){
+    renderer.setClearColor(new THREE.Color(0xffffff));
+    flashAlpha-=0.02;
+  }else{
+    renderer.setClearColor(new THREE.Color(0x000000));
+  }
+
+  // 파티클 애니메이션
+  if(particles.visible){
+    const pos=particles.geometry.attributes.position.array;
+    for(let i=0;i<particleCount;i++){
+      pos[i*3]+=particles.userData.vel[i].x;
+      pos[i*3+1]+=particles.userData.vel[i].y;
+      pos[i*3+2]+=particles.userData.vel[i].z;
+      particles.userData.life[i]-=0.02;
+    }
+    particles.geometry.attributes.position.needsUpdate=true;
+    if(particles.userData.life.every(v=>v<=0)) particles.visible=false;
+  }
+
+  renderer.render(scene,camera);
 }
 animate();
 
-// --- 창 크기 변경 대응 ---
+// --- 초신성 트리거 ---
+function triggerSupernova(position){
+  particles.position.copy(position);
+  particles.visible=true;
+  particles.userData={vel:[], life:[]};
+  for(let i=0;i<particleCount;i++){
+    const speed=Math.random()*3+1;
+    const theta=Math.random()*Math.PI*2;
+    const phi=Math.random()*Math.PI;
+    particles.userData.vel.push({
+      x: speed*Math.sin(phi)*Math.cos(theta),
+      y: speed*Math.sin(phi)*Math.sin(theta),
+      z: speed*Math.cos(phi)
+    });
+    particles.userData.life.push(Math.random()*2+1);
+  }
+}
+
+// --- 창 크기 대응 ---
 window.addEventListener('resize', ()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
-
 </body>
 </html>
